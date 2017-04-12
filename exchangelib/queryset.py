@@ -93,7 +93,7 @@ class QuerySet(object):
     NONE = 'none'
     RETURN_TYPES = (VALUES, VALUES_LIST, FLAT, NONE)
 
-    def __init__(self, folder):
+    def __init__(self, folder, use_cache=True):
         self.folder = folder
         self.q = Q()
         self.only_fields = None
@@ -103,6 +103,7 @@ class QuerySet(object):
         self.page_size = None
 
         self._cache = None
+        self.use_cache = use_cache
 
     def copy(self):
         # When we copy a queryset where the cache has already been filled, we don't copy the cache. Thus, a copied
@@ -246,9 +247,14 @@ class QuerySet(object):
             self.NONE: lambda res_iter: res_iter,
         }[self.return_format]
         for val in result_formatter(self._query()):
-            _cache.append(val)
+            if self.use_cache:
+                _cache.append(val)
             yield val
-        self._cache = _cache
+
+        if self.use_cache:
+            self._cache = _cache
+        else:
+            self._cache = None
 
     def __len__(self):
         if self._cache is not None:
